@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parts Inventory</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e3250;
+      --accent:    #6c63ff;
+      --accent2:   #ff6584;
+      --text:      #e2e4f0;
+      --muted:     #7b809a;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    header h1 span { color: var(--accent); }
+
+    /* ── Search ── */
+    .search-wrap {
+      flex: 1;
+      position: relative;
+      max-width: 480px;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    #search {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 0.55rem 0.75rem 0.55rem 2.4rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #search:focus { border-color: var(--accent); }
+    #search::placeholder { color: var(--muted); }
+
+    /* ── Stats bar ── */
+    .stats {
+      padding: 0.6rem 2rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .stats strong { color: var(--text); }
+
+    /* ── Category filters ── */
+    .filters {
+      padding: 0.5rem 2rem 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--text); }
+    .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+      padding: 0 2rem 2rem;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s, border-color 0.15s;
+      cursor: default;
+    }
+    .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+    .card-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: var(--surface2);
+      display: block;
+    }
+    .card-img-placeholder {
+      width: 100%;
+      aspect-ratio: 1;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--border);
+      font-size: 2.5rem;
+    }
+
+    .card-body {
+      padding: 0.75rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .card-category {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .card-item {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .card-variant {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: auto;
+      padding-top: 0.25rem;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .card-price {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .card-qty {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .card-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+    .card-link:hover { color: var(--accent); }
+
+    /* ── Empty state ── */
+    .empty {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+    .empty p { margin-top: 0.5rem; font-size: 0.9rem; }
+
+    /* ── Config banner ── */
+    .config-banner {
+      background: var(--surface2);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      margin: 1.5rem 2rem;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .config-banner code {
+      background: var(--bg);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+
+    /* ── Loading ── */
+    .loading {
+      text-align: center;
+      padding: 4rem;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Parts <span>Inventory</span></h1>
+  <div class="search-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input id="search" type="search" placeholder="Search items, descriptions, categories…" autocomplete="off">
+  </div>
+</header>
+
+<div id="app">
+  <div class="loading"><div class="spinner"></div>Loading inventory…</div>
+</div>
+
+<script>
+  // ── CONFIG — paste your published Google Sheet CSV URL here ──────────────
+  // In Google Sheets: File → Share → Publish to web → Sheet: Orders → CSV → Publish
+  // Then paste the URL below.
+  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR1bEn70hRXSE_UYvslvovICFD5BRMIcjH9Yd0Fwmq-f8PkmuKwGnFdcUaSBgkgRR4UdiIHvZYsE-QW/pub?gid=1746221665&single=true&output=csv';
+
+  // Category colour overrides (optional)
+  const CATEGORY_COLORS = {
+    'Microcontrollers': '#6c63ff',
+    'Sensors':          '#00b4d8',
+    'Electronics':      '#48cae4',
+    'Connectors':       '#f77f00',
+    'Passives':         '#4cc9f0',
+    'Mechanical':       '#f4a261',
+    'Hardware':         '#a8dadc',
+    'Tools':            '#e9c46a',
+    'Cables':           '#57cc99',
+    'Display':          '#c77dff',
+    'Power':            '#ff6b6b',
+    'Other':            '#7b809a',
+  };
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let allItems = [];
+  let activeCategory = 'All';
+  let searchQuery = '';
+
+  // ── CSV parser ─────────────────────────────────────────────────────────────
+  function parseCsv(text) {
+    const lines = text.trim().split('\n');
+    const headers = parseCsvRow(lines[0]);
+    return lines.slice(1).filter(l => l.trim()).map(line => {
+      const values = parseCsvRow(line);
+      return Object.fromEntries(headers.map((h, i) => [h.trim(), (values[i] ?? '').trim()]));
+    });
+  }
+
+  function parseCsvRow(line) {
+    const fields = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (c === ',' && !inQ) { fields.push(cur); cur = ''; }
+      else cur += c;
+    }
+    fields.push(cur);
+    return fields;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function render() {
+    const q = searchQuery.toLowerCase();
+    const filtered = allItems.filter(item => {
+      const matchCat = activeCategory === 'All' || item.Category === activeCategory;
+      const matchQ = !q ||
+        (item.Item || '').toLowerCase().includes(q) ||
+        (item.Description || '').toLowerCase().includes(q) ||
+        (item.Category || '').toLowerCase().includes(q) ||
+        (item.Variant || '').toLowerCase().includes(q) ||
+        (item['Item Name'] || '').toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+
+    const categories = ['All', ...new Set(allItems.map(i => i.Category).filter(Boolean).sort())];
+    const totalValue = filtered.reduce((s, i) => s + (parseFloat(i.Price) || 0), 0);
+
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <div class="stats">
+        Showing <strong>${filtered.length}</strong> of <strong>${allItems.length}</strong> items
+        &nbsp;·&nbsp; Total: <strong>£${totalValue.toFixed(2)}</strong>
+      </div>
+      <div class="filters">
+        ${categories.map(cat => `
+          <div class="chip ${cat === activeCategory ? 'active' : ''}" data-cat="${cat}">${cat}</div>
+        `).join('')}
+      </div>
+      <div class="grid">
+        ${filtered.length === 0
+          ? `<div class="empty"><div style="font-size:2rem">🔍</div><p>No items match your search.</p></div>`
+          : filtered.map(item => renderCard(item)).join('')
+        }
+      </div>
+    `;
+
+    // Category chip events
+    app.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeCategory = chip.dataset.cat;
+        render();
+      });
+    });
+  }
+
+  function renderCard(item) {
+    const color = CATEGORY_COLORS[item.Category] || '#7b809a';
+    const imgHtml = item.Thumbnail
+      ? `<img class="card-img" src="${item.Thumbnail}" alt="${item.Item}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'card-img-placeholder\\'>📦</div>'">`
+      : `<div class="card-img-placeholder">📦</div>`;
+
+    const price = item.Price ? `£${parseFloat(item.Price).toFixed(2)}` : '—';
+    const qty = item.Quantity && item.Quantity !== '1' ? `×${item.Quantity}` : '';
+
+    return `
+      <div class="card">
+        ${imgHtml}
+        <div class="card-body">
+          <div class="card-category" style="color:${color}">${item.Category || 'Other'}</div>
+          <div class="card-item">${item.Item || item['Item Name'] || '—'}</div>
+          <div class="card-desc">${item.Description || ''}</div>
+          ${item.Variant ? `<div class="card-variant">${item.Variant}</div>` : ''}
+        </div>
+        <div class="card-footer">
+          <span>
+            <span class="card-price">${price}</span>
+            ${qty ? `<span class="card-qty"> ${qty}</span>` : ''}
+          </span>
+          ${item['Product URL'] ? `<a class="card-link" href="${item['Product URL']}" target="_blank" rel="noopener">↗ View</a>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  async function init() {
+    if (!SHEET_CSV_URL) {
+      document.getElementById('app').innerHTML = `
+        <div class="config-banner">
+          <strong>One step to connect your inventory:</strong><br><br>
+          1. Open your Google Sheet<br>
+          2. <strong>File → Share → Publish to web</strong><br>
+          3. Choose your <em>Orders</em> sheet, set format to <strong>CSV</strong>, click <strong>Publish</strong><br>
+          4. Copy the URL and paste it into <code>inventory.html</code> at the top of the &lt;script&gt; tag:<br><br>
+          <code>const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/…/pub?…';</code>
+        </div>
+      `;
+      return;
+    }
+
+    try {
+      const res = await fetch(SHEET_CSV_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      allItems = parseCsv(text);
+      render();
+    } catch (err) {
+      document.getElementById('app').innerHTML = `
+        <div class="config-banner">
+          <strong>Failed to load sheet:</strong> ${err.message}<br><br>
+          Make sure the sheet is published and the URL is correct.<br>
+          Also check that the sheet is set to <em>"Anyone with the link"</em> → <strong>Viewer</strong>.
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    render();
+  });
+
+  init();
+</script>
+</body>
+</html>
