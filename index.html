@@ -414,7 +414,7 @@
     }
 
     try {
-      const res = await fetch(SHEET_CSV_URL);
+      const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       allItems = parseCsv(text);
