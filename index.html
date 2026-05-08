@@ -349,13 +349,11 @@
     });
 
     const categories = ['All', ...new Set(allItems.map(i => i.Category).filter(Boolean).sort())];
-    const totalValue = filtered.reduce((s, i) => s + (parseFloat(i.Price) || 0), 0);
 
     const app = document.getElementById('app');
     app.innerHTML = `
       <div class="stats">
         Showing <strong>${filtered.length}</strong> of <strong>${allItems.length}</strong> items
-        &nbsp;·&nbsp; Total: <strong>£${totalValue.toFixed(2)}</strong>
       </div>
       <div class="filters">
         ${categories.map(cat => `
