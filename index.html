@@ -301,12 +301,23 @@
   let searchQuery = '';
 
   // ── CSV parser ─────────────────────────────────────────────────────────────
+  // Column order as uploaded by enhance-orders.js + upload-to-sheets.js
+  const KNOWN_HEADERS = ['Item', 'Description', 'Category', 'Variant', 'Quantity', 'Price', 'Product URL', 'Thumbnail', 'Item Name', 'Date Added'];
+
   function parseCsv(text) {
-    const lines = text.trim().split('\n');
-    const headers = parseCsvRow(lines[0]);
-    return lines.slice(1).filter(l => l.trim()).map(line => {
+    // Strip blank rows (Google Sheets Table format adds empty rows at top)
+    const lines = text.trim().split('\n').filter(l => l.replace(/,/g, '').trim());
+    if (!lines.length) return [];
+
+    const firstRow = parseCsvRow(lines[0]).map(f => f.trim());
+    const hasHeaders = firstRow.some(f => KNOWN_HEADERS.includes(f));
+
+    const headers  = hasHeaders ? firstRow : KNOWN_HEADERS;
+    const dataRows = hasHeaders ? lines.slice(1) : lines;
+
+    return dataRows.filter(l => l.trim()).map(line => {
       const values = parseCsvRow(line);
-      return Object.fromEntries(headers.map((h, i) => [h.trim(), (values[i] ?? '').trim()]));
+      return Object.fromEntries(headers.map((h, i) => [h, (values[i] ?? '').trim()]));
     });
   }
 
